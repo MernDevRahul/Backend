@@ -106,7 +106,7 @@ exports.login = async (req, res) => {
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
       maxAge:
         (parseInt(process.env.JWT_COOKIE_DAYS || '7', 10) || 7) *
         24 *
