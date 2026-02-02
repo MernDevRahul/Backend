@@ -201,6 +201,105 @@ exports.verifyOtp = async (req, res) => {
   }
 };
 
+// Forget Password
+exports.forgotPassowrd = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) return res.status(400).json({ message: "Email is required" });
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // 🔐 Generate token
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
+
+    // Save token in DB
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpire = Date.now() + 15 * 60 * 1000; // 15 min
+    await user.save({ validateBeforeSave: false });
+
+    // 🔗 Reset link
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+
+    // 📩 Email template
+    const html = `
+      <div style="font-family: Arial; padding: 20px;">
+        <h2>Password Reset Request</h2>
+        <p>You requested to reset your password.</p>
+        <a href="${resetUrl}"
+          style="
+            display: inline-block;
+            padding: 12px 20px;
+            background: #4f46e5;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 6px;
+            margin-top: 10px;
+          ">
+          Reset Password
+        </a>
+        <p style="margin-top: 20px; font-size: 12px;">
+          This link will expire in 15 minutes.
+        </p>
+      </div>
+    `;
+
+    await transporter.sendMail({
+      from: `"Scan To Vote" <${process.env.SMTP_EMAIL}>`,
+      to: email,
+      subject: "Reset Your Password",
+      html,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Password reset link sent to your email",
+    });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+// Reset Password
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpire: { $gt: Date.now() },
+    });
+
+    if (!user)
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid or expired token" });
+
+    user.password = password; // hash via pre-save hook
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Password reset successfully",
+    });
+  } catch (error) {
+    res.status(500).json({ success: true, message: error.message });
+  }
+};
+
 // @desc    Logout user (clear JWT cookie)
 // @route   POST /auth/logout
 // @access  Public/Authenticated

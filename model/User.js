@@ -46,8 +46,17 @@ const UserSchema = new Schema(
     },
     profile: { type: String },
 
-    // Only for super_admin
+    resetPasswordToken: {
+      type: String,
+      default: null,
+    },
 
+    resetPasswordExpire: {
+      type: Date,
+      default: null,
+    },
+
+    // Only for super_admin
     contests: {
       type: [ContestAccessSchema],
       default: undefined, // prevents empty array for others
@@ -62,7 +71,6 @@ const UserSchema = new Schema(
   { timestamps: true },
 );
 
-
-const User = mongoose.model('User',UserSchema);
+const User = mongoose.model("User", UserSchema);
 
 module.exports = User;
