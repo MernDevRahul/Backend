@@ -42,7 +42,7 @@ const UserSchema = new Schema(
     phone: { type: String, required: true },
     role: {
       type: String,
-      enum: ["owner", "super_admin", "admin", "sponsor", "judge"],
+      enum: ["owner", "client", "admin", "sponsor", "judge"],
     },
     profile: { type: String },
 
