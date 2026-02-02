@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../model/User");
 const generateOtp = require("../utils/generateOtp");
 const transporter = require("../utils/mailer");
+const crypto = require("crypto");
 
 const otpStore = new Map();
 
@@ -261,6 +262,7 @@ exports.forgotPassowrd = async (req, res) => {
       message: "Password reset link sent to your email",
     });
   } catch (error) {
+    console.error("Error in forgotPassowrd:", error);
     return res
       .status(500)
       .json({ success: false, message: "Internal Server Error" });
@@ -285,7 +287,8 @@ exports.resetPassword = async (req, res) => {
         .status(400)
         .json({ success: false, message: "Invalid or expired token" });
 
-    user.password = password; // hash via pre-save hook
+        const hashedPassword = await bcrypt.hash(password, 10);
+    user.password = hashedPassword;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
 

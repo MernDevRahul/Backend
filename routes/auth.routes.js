@@ -1,5 +1,5 @@
 const express = require('express');
-const { createUser, login, logout, fetchOwner, sendOtp, verifyOtp, forgotPassowrd, resetPassword } = require('../controllers/auth.controller');
+const { login, logout, fetchOwner, sendOtp, verifyOtp, forgotPassowrd, resetPassword } = require('../controllers/auth.controller');
 const { protect } = require('../middleware/protect');
 const router = express.Router();
 // Login
@@ -15,7 +15,7 @@ router.post('/verify-otp', verifyOtp)
 router.post('/forget-password', forgotPassowrd);
 
 // reset password
-router.post('/reset-password',resetPassword);
+router.post('/reset-password/:token',resetPassword);
 // Logout
 router.post('/logout', logout);
 
