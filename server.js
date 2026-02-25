@@ -11,6 +11,7 @@ dotenv.config();
 const authRouter = require('./routes/auth.routes');
 const userRouter = require('./routes/user.routes');
 const clientRouter = require('./routes/client.routes');
+const contestRouter = require('./routes/contest.routes');
 
 
 const app = express();
@@ -66,6 +67,7 @@ app.get('/', (req, res) => {
 app.use('/auth', authRouter);
 app.use('/user', userRouter);
 app.use('/client', clientRouter);
+app.use('/contest', contestRouter);
 
 app.listen(process.env.PORT, () => {
   console.log(`Server is running on port ${process.env.PORT}`);

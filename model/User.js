@@ -56,7 +56,7 @@ const UserSchema = new Schema(
       default: null,
     },
 
-    // Only for super_admin
+    // Only for client
     contests: {
       type: [ContestAccessSchema],
       default: undefined, // prevents empty array for others
