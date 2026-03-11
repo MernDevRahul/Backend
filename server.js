@@ -1,27 +1,30 @@
-const express = require('express');
-const cors = require('cors')
-const dotenv = require('dotenv');
-const cookieParser = require('cookie-parser');
-const { connectDb } = require('./config/db');
+const express = require("express");
+const cors = require("cors");
+const dotenv = require("dotenv");
+const cookieParser = require("cookie-parser");
+const { connectDb } = require("./config/db");
 
 // env configuration
 dotenv.config();
 
 // Routes
-const authRouter = require('./routes/auth.routes');
-const userRouter = require('./routes/user.routes');
-const clientRouter = require('./routes/client.routes');
-const contestRouter = require('./routes/contest.routes');
-
+const authRouter = require("./routes/auth.routes");
+const userRouter = require("./routes/user.routes");
+const clientRouter = require("./routes/client.routes");
+const contestRouter = require("./routes/contest.routes");
 
 const app = express();
+const path = require("path");
 
 // body parsers
 app.use(express.json());
 app.use(cookieParser());
 
+// Serve static files from the uploads directory
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 // cors coniguration
-let whitelist = ["http://localhost:8005",];
+let whitelist = ["http://localhost:8005"];
 
 // app.use(cors({
 //   origin: function(origin, callback){
@@ -37,7 +40,7 @@ let whitelist = ["http://localhost:8005",];
 
 // app.all(/.*/, function(req, res, next) {
 //   let origin = whitelist.includes(req.header("origin").toLocaleLowerCase())
-//   ? req.headers.origin 
+//   ? req.headers.origin
 //   : "http://localhost:8000";
 
 //   if(whitelist.indexOf(origin)!==-1){
@@ -52,22 +55,24 @@ let whitelist = ["http://localhost:8005",];
 //   }
 // });
 
-app.use(cors({
-  origin : whitelist,
-  credentials: true
-}))
+app.use(
+  cors({
+    origin: whitelist,
+    credentials: true,
+  }),
+);
 
 // db Connection
 connectDb();
 
-app.get('/', (req, res) => {
-  res.send('Hello From Scan to Vote');
+app.get("/", (req, res) => {
+  res.send("Hello From Scan to Vote");
 });
 
-app.use('/auth', authRouter);
-app.use('/user', userRouter);
-app.use('/client', clientRouter);
-app.use('/contest', contestRouter);
+app.use("/auth", authRouter);
+app.use("/user", userRouter);
+app.use("/client", clientRouter);
+app.use("/contest", contestRouter);
 
 app.listen(process.env.PORT, () => {
   console.log(`Server is running on port ${process.env.PORT}`);

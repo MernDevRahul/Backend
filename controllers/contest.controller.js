@@ -1,8 +1,8 @@
-const Contest = require('../model/Contest');
-const User = require('../model/User');
-const slugify = require('slugify');
-const bcrypt = require('bcrypt');
-const transporter = require('../utils/mailer')
+const Contest = require("../model/Contest");
+const User = require("../model/User");
+const slugify = require("slugify");
+const bcrypt = require("bcrypt");
+const transporter = require("../utils/mailer");
 
 // Create a new contest
 exports.createContest = async (req, res) => {
@@ -36,7 +36,9 @@ exports.createContest = async (req, res) => {
     // ==============================
     // 2️⃣ Check Client (Single Query)
     // ==============================
-    let clientUser = await User.findOne({ email: clientEmail }).select("_id email");
+    let clientUser = await User.findOne({ email: clientEmail }).select(
+      "_id email",
+    );
     let isNewUser = false;
 
     if (!clientUser) {
@@ -63,11 +65,17 @@ exports.createContest = async (req, res) => {
     // ==============================
     // 3️⃣ Create Contest
     // ==============================
+
+    let contestLogo = logo;
+    if (req.files && req.files["contestlogo"] && req.files["contestlogo"][0]) {
+      contestLogo = `/uploads/contest/${req.files["contestlogo"][0].filename}`;
+    }
+
     const contest = await Contest.create({
       name,
       slug,
       description,
-      logo,
+      logo: contestLogo,
       website,
       clientId: clientUser._id,
       clientManagers,
@@ -80,7 +88,7 @@ exports.createContest = async (req, res) => {
     // ==============================
     const sendEmail = async () => {
       try {
-            const emailHtml = `
+        const emailHtml = `
     <div style="background:#f3f4f6;padding:40px 0;font-family:Arial,Helvetica,sans-serif;">
       <div style="max-width:600px;margin:auto;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 15px 35px rgba(0,0,0,0.08);">
 
@@ -178,7 +186,6 @@ exports.createContest = async (req, res) => {
         : "Contest created successfully for existing client",
       data: contest,
     });
-
   } catch (error) {
     console.error("Error in createContest:", error);
     return res.status(500).json({
@@ -191,32 +198,68 @@ exports.createContest = async (req, res) => {
 // Get all Contests
 exports.getAllContests = async (req, res) => {
   try {
-    const { page = 1, limit = 10, status, search } = req.query;
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const { status, search } = req.query;
 
-    const query = {
-      clientId: req.user._id,
-      isDeleted: false,
-    };
+    const query = {};
 
     if (status) {
       query.status = status;
     }
 
     if (search) {
-      query.name = { $regex: search, $options: "i" };
+      query.$text = { $search: search };
     }
 
-    const contests = await Contest.find(query)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(Number(limit));
+    const result = await Contest.aggregate([
+      { $match: query },
 
-    const total = await Contest.countDocuments(query);
+      {
+        $facet: {
+          data: [
+            { $sort: { createdAt: -1 } },
+            { $skip: (page - 1) * limit },
+            { $limit: limit },
+
+            {
+              $lookup: {
+                from: "users", // collection name in MongoDB
+                localField: "clientId",
+                foreignField: "_id",
+                as: "client",
+              },
+            },
+            { $unwind: "$client" },
+
+            {
+              $project: {
+                name: 1,
+                slug: 1,
+                status: 1,
+                totalSeasons: 1,
+                totalParticipants: 1,
+                totalVotes: 1,
+                createdAt: 1,
+                "client._id": 1,
+                "client.name": 1,
+                "client.email": 1,
+              },
+            },
+          ],
+
+          totalCount: [{ $count: "count" }],
+        },
+      },
+    ]);
+
+    const contests = result[0].data;
+    const total = result[0].totalCount[0]?.count || 0;
 
     res.status(200).json({
       success: true,
       total,
-      page: Number(page),
+      page,
       pages: Math.ceil(total / limit),
       data: contests,
     });
@@ -308,7 +351,7 @@ exports.updateContest = async (req, res) => {
     const updatedContest = await Contest.findByIdAndUpdate(
       req.params.id,
       req.body,
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     res.status(200).json({
@@ -367,7 +410,7 @@ exports.changeContestStatus = async (req, res) => {
     const contest = await Contest.findByIdAndUpdate(
       req.params.id,
       { status },
-      { new: true }
+      { new: true },
     );
 
     if (!contest) {

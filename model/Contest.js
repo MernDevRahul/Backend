@@ -69,11 +69,11 @@ const ContestSchema = new mongoose.Schema(
       index: true,
     },
 
-    isDeleted: {
-      type: Boolean,
-      default: false,
-      index: true,
-    },
+    // isDeleted: {
+    //   type: Boolean,
+    //   default: false,
+    //   index: true,
+    // },
     // Analytics Ready Fields (Optional but useful)
     totalSeasons: {
       type: Number,
@@ -93,13 +93,20 @@ const ContestSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-// For dashboard query (client sees his contests)
-ContestSchema.index({ clientId: 1, status: 1 });
+// Dashboard indexes
+ContestSchema.index({ status: 1, createdAt: -1 });
+
+// Client dashboard (MOST IMPORTANT)
+ContestSchema.index({ clientId: 1, createdAt: -1 });
+ContestSchema.index({ clientId: 1, status: 1, createdAt: -1 });
+
+// Text search
+ContestSchema.index(
+  { name: "text" },
+  { weights: { name: 5 } }
+);
 
 // For SaaS plan filtering
 // ContestSchema.index({ plan: 1, status: 1 });
-
-// For soft-delete safety
-ContestSchema.index({ isDeleted: 1 });
 
 module.exports = mongoose.model("Contest", ContestSchema);
