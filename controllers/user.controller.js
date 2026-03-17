@@ -188,3 +188,22 @@ exports.deleteUser = async (req, res) => {
     });
   }
 };
+
+// Get Users by Role
+exports.getUsersByRole = async (req, res) => {
+  try {
+    const role = req.params.role;
+    const users = await User.find({ role }).select("-password");
+
+    return res.status(200).json({
+      success: true,
+      data: users,
+    });
+  } catch (error) {
+    console.error("Error fetching users by role:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
