@@ -244,6 +244,8 @@ exports.getAllContests = async (req, res) => {
                 "client._id": 1,
                 "client.name": 1,
                 "client.email": 1,
+                "client.phone":1,
+                "client.profile":1,
               },
             },
           ],
