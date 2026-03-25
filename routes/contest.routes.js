@@ -1,5 +1,5 @@
 const express = require("express");
-const {createContest, getAllContests} = require("../controllers/contest.controller");
+const {createContest, getAllContests, deleteContest} = require("../controllers/contest.controller");
 const upload = require("../middleware/multer");
 const router = express.Router();
 
@@ -8,5 +8,8 @@ router.post("/create", upload.fields([{ name: "contestlogo", maxCount: 1 }, { na
 
 // get all contests
 router.get("/all", getAllContests);
+
+// Delete Contest
+router.delete("/delete/:id", deleteContest);
 
 module.exports = router;

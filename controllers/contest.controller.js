@@ -3,6 +3,8 @@ const User = require("../model/User");
 const slugify = require("slugify");
 const bcrypt = require("bcrypt");
 const transporter = require("../utils/mailer");
+const fs = require("fs");
+const path = require('path');
 
 // Create a new contest
 exports.createContest = async (req, res) => {
@@ -18,7 +20,6 @@ exports.createContest = async (req, res) => {
       clientPhone,
       clientManagers,
     } = req.body;
-
     if (!name || !clientEmail) {
       return res.status(400).json({
         success: false,
@@ -374,20 +375,28 @@ exports.deleteContest = async (req, res) => {
   try {
     const contest = await Contest.findById(req.params.id);
 
-    if (!contest || contest.isDeleted) {
+    if (!contest) {
       return res.status(404).json({
         success: false,
         message: "Contest not found",
       });
     }
 
-    contest.isDeleted = true;
-    contest.status = "inactive";
-    await contest.save();
+    if (contest.logo) {
+      const logoPath = path.join(__dirname, "..", contest.logo);
+      fs.unlink(logoPath, (err) => {
+        if (err) {
+          console.log("Logo delete error:", err.message);
+        }
+      });
+    }
+
+    // ❌ Permanently delete from DB
+    await Contest.findByIdAndDelete(req.params.id);
 
     res.status(200).json({
       success: true,
-      message: "Contest deleted successfully",
+      message: "Contest permanently deleted",
     });
   } catch (error) {
     res.status(500).json({
