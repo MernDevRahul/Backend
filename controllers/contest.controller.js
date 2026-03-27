@@ -4,7 +4,7 @@ const slugify = require("slugify");
 const bcrypt = require("bcrypt");
 const transporter = require("../utils/mailer");
 const fs = require("fs");
-const path = require('path');
+const path = require("path");
 
 // Create a new contest
 exports.createContest = async (req, res) => {
@@ -81,6 +81,19 @@ exports.createContest = async (req, res) => {
       clientId: clientUser._id,
       clientManagers,
     });
+
+    // ✅ ADD THIS HERE
+await User.findByIdAndUpdate(
+  clientUser._id,
+  {
+    $push: {
+      contests: {
+        contestId: contest._id,
+        status: "active",
+      },
+    },
+  }
+);
 
     const contestLink = `${process.env.FRONTEND_URL}/contest/${slug}`;
 
@@ -245,8 +258,8 @@ exports.getAllContests = async (req, res) => {
                 "client._id": 1,
                 "client.name": 1,
                 "client.email": 1,
-                "client.phone":1,
-                "client.profile":1,
+                "client.phone": 1,
+                "client.profile": 1,
               },
             },
           ],
@@ -331,10 +344,14 @@ exports.getContestBySlug = async (req, res) => {
 // update a contest
 exports.updateContest = async (req, res) => {
   try {
-    const contest = await Contest.findOne({
-      _id: req.params.id,
-      isDeleted: false,
-    });
+    const contestId = req.params.id;
+
+    const { name, description, website, status } = req.body;
+
+    // ==============================
+    // Find Contest
+    // ==============================
+    const contest = await Contest.findById(contestId);
 
     if (!contest) {
       return res.status(404).json({
@@ -343,29 +360,40 @@ exports.updateContest = async (req, res) => {
       });
     }
 
-    // Only owner can update
-    if (contest.clientId.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: "Unauthorized",
-      });
+    // ==============================
+    // Handle Logo Upload (Multer)
+    // ==============================
+    let contestLogo = contest.logo;
+
+    if (req.files && req.files["contestlogo"] && req.files["contestlogo"][0]) {
+      contestLogo = `/uploads/contest/${req.files["contestlogo"][0].filename}`;
     }
 
-    const updatedContest = await Contest.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true },
-    );
+    // ==============================
+    // Update Contest Fields
+    // ==============================
+    if (name) contest.name = name;
+    if (description) contest.description = description;
+    if (website) contest.website = website;
+    if (status) contest.status = status;
 
-    res.status(200).json({
+    contest.logo = contestLogo;
+
+    await contest.save();
+
+    // ==============================
+    // 6️⃣ Response
+    // ==============================
+    return res.status(200).json({
       success: true,
       message: "Contest updated successfully",
-      data: updatedContest,
+      data: contest,
     });
   } catch (error) {
-    res.status(500).json({
+    console.error("Update Contest Error:", error);
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message || "Internal Server Error",
     });
   }
 };
